@@ -211,5 +211,5 @@ into diehard:
 (FIXME: I aborted here, I'll repeat that one later)
 
 So, all those checks don't look that bad, but of course this doesn't
-say much about TWENTY4. However, not THAT bad for the first cipher :)
+say much about TWENTY4's security. However, not THAT bad for the first cipher :)
 
