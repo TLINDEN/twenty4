@@ -102,8 +102,8 @@ where:
       for N in 0..31
         NEXT = K[N]
         K[N] = PREV 
-	PREV = NEXT
-	K[N] = KBOX[K[N] xor B]
+        PREV = NEXT
+        K[N] = KBOX[K[N] xor B]
       done
     endfunc    
 
