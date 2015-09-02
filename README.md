@@ -54,7 +54,7 @@ TWENTY4 uses two S-Box arrays, one for key expansion and one for encryption.
 
 ## Key expansion
 
-The input key will be expanded into a 17 byte array. Maximum key size is
+The input key will be expanded into a 32 byte array. Maximum key size is
 32 bytes (256 bit).
 
     IV = KU[0]
