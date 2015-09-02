@@ -4,6 +4,8 @@ DST     = twenty4
 OBJS    = twenty4.o
 
 all: $(DST)
+	cd analyze && make
+	cd sbox && make
 
 $(DST): $(OBJS)
 	gcc $(LDFLAGS) $(OBJS) -o $(DST)
@@ -13,4 +15,5 @@ $(DST): $(OBJS)
 
 clean:
 	rm -f *.o $(DST)
-
+	cd analyze && make clean
+	cd sbox && make clean
