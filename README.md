@@ -24,7 +24,7 @@ is encrypted using AES-256-CBC with the passphrase
 "grundgesetz\n". The resulting byte stream is used as the source for
 S-Boxes.
 
-The following version of the german consitution is used:
+The following version of the german constitution is used:
 
 Basic Law for the Federal Republic of Germany in the revised version
 published in the Federal Law Gazette Part III, classification number
