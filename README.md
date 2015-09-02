@@ -98,12 +98,14 @@ where:
     endfor
     
     func rotatekey(K, B)
-      [rotate K[32] array elementy 1 to the right]
-      for N in 0..16:
-        K[N] = KBOX[K[N] xor B]
-      endfor
-    endfunc
-    
+      PREV = K[31]
+      for N in 0..31
+        NEXT = K[N]
+        K[N] = PREV 
+	PREV = NEXT
+	K[N] = KBOX[K[N] xor B]
+      done
+    endfunc    
 
 where:
 
