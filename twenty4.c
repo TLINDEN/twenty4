@@ -163,7 +163,7 @@ void keyhash(char *pw, byte *hash) {
   iv = kbox[(byte)pw[0]];
 
   /* stretch pw */
-  for(i=0; i<S_BOX_ROUNDS; i++) {
+  for(i=0; i<K_HASH_ROUNDS; i++) {
     if((size_t)i < pwlen)
       hash[i] = iv ^ pw[i];
     else
@@ -175,7 +175,7 @@ void keyhash(char *pw, byte *hash) {
   
   /* diffuse and confuse hash */
   for(round=0; round<K_HASH_ROUNDS; round++) {
-    for(i=0; i<S_BOX_ROUNDS; i++) {
+    for(i=0; i<K_HASH_ROUNDS; i++) {
       hash[i] = iv ^ (rot8left(hash[i], 3) ^ kbox[rcon(iv)]);
       iv = hash[i];
     }
@@ -283,7 +283,7 @@ int cbc_handleio(byte *key, int encrypt) {
 
 
 int main(int argc, char **argv)  {
-  byte key[S_BOX_ROUNDS];
+  byte key[K_HASH_ROUNDS];
   int encrypt;
   
   if(argc != 3) {

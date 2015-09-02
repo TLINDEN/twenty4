@@ -55,10 +55,10 @@ TWENTY4 uses two S-Box arrays, one for key expansion and one for encryption.
 ## Key expansion
 
 The input key will be expanded into a 17 byte array. Maximum key size is
-17 bytes (136 bit).
+32 bytes (256 bit).
 
     IV = KU[0]
-    for ROUND in 0..16
+    for ROUND in 0..31
       if KU[ROUND]
         K[ROUND] = IV xor KU[ROUND]
       else
@@ -69,7 +69,7 @@ The input key will be expanded into a 17 byte array. Maximum key size is
     endfor
     
     for KROUND in 0..31
-      for ROUND in 0..17
+      for ROUND in 0..31
         K[ROUND] = IV xor (rotateleft-3(K[ROUND]) xor KBOX[rcon(IV)])
         IV = K[ROUND]
       endfor
@@ -79,7 +79,7 @@ where:
 
     KU: input key
     K[17]: initial round key array
-    ROUND: encryption round 1-17
+    ROUND: encryption round 1-32
     KROUND: key expansion round 1-32
     KBOX[256]: pre computed S-Box for key expansion
 
@@ -98,7 +98,7 @@ where:
     endfor
     
     func rotatekey(K, B)
-      [rotate K[17] array elementy 1 to the right]
+      [rotate K[32] array elementy 1 to the right]
       for N in 0..16:
         K[N] = KBOX[K[N] xor B]
       endfor
