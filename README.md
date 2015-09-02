@@ -104,7 +104,7 @@ where:
         K[N] = PREV 
         PREV = NEXT
         K[N] = KBOX[K[N] xor B]
-      done
+      endfor
     endfunc    
 
 where:
