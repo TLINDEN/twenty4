@@ -70,7 +70,7 @@ The input key will be expanded into a 32 byte array. Maximum key size is
     
     for KROUND in 0..31
       for ROUND in 0..31
-        K[ROUND] = IV xor (rotateleft-3(K[ROUND]) xor KBOX[rcon(IV)])
+        K[ROUND] = IV xor (rotateleft(K[ROUND], 3) xor KBOX[rcon(IV)])
         IV = K[ROUND]
       endfor
     endfor
@@ -90,8 +90,8 @@ where:
       for ROUND in 0..17
         OUTBYTE = OUTBYTE xor K[ROUND]
         OUTBYTE = OUTBYTE xor SBOX[OUTBYTE]
-        OUTBYTE = rotateleft-ROUND%8(OUTBYTE)
-        OUTBYTE = rotateright-4(K[ROUND])
+        OUTBYTE = rotateleft(OUTBYTE, ROUND mod 8)
+        OUTBYTE = rotateright(K[ROUND], 4)
       endfor
       rotatekey(K, OUTBYTE)
       OUTBYTE => <OUTSTREAM>
@@ -112,6 +112,8 @@ where:
     INBYTE: one input byte
     OUTBYTE: encrypted result for output
     SBOX[256]: pre computed S-Box for encryption
+    rotateleft(B,N): rotate byte B by N bits to the left 
+    rotateright(B,N): rotate byte B by N bits to the right 
 
 
 ## Analysis so far
