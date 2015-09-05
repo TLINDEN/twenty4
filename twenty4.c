@@ -176,7 +176,7 @@ void keyhash(char *pw, byte *hash) {
   /* diffuse and confuse hash */
   for(round=0; round<K_HASH_ROUNDS; round++) {
     for(i=0; i<K_HASH_ROUNDS; i++) {
-      hash[i] = iv ^ (rot8left(hash[i], 3) ^ kbox[rcon(iv)]);
+      hash[i] = iv ^ ((rot8left(hash[i], 3) * kbox[rcon(iv)])) % 255;
       iv = hash[i];
     }
   }
@@ -201,11 +201,13 @@ void rotate(byte array[], int size, int amt) {
 }
 
 void rotatekey(byte *key, byte feedback) {
-  rotate(key, S_BOX_ROUNDS, 1);
   int i;
-  for(i=0; i<S_BOX_ROUNDS; i++) {
-    key[i] = kbox[key[i] ^ feedback];
-  }
+  byte f = key[0];
+
+  for (i = S_BOX_ROUNDS-1; i>1; i--)
+    key[i-1] = kbox[key[i] ^ feedback];
+
+  key[16] =  kbox[f ^ feedback];
 }
 
 /* actual stream cipher:
