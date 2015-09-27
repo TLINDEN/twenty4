@@ -63,8 +63,6 @@ FIXME.
 
 ## Analysis so far
 
-These are the results of the previous (128bit) version.
-
 While this stuff only exists for me to play around with
 crypto, I tried to test the cipher a little bit. Here are
 my results using a couple of statistical measurements:
@@ -78,11 +76,11 @@ passphrase.
 
 My own measurement, see analyze.c:
 
-             File size: 35147 bytes
-    Char distribution: 100.000000%
-      Char redundancy: 0.000000%
-         Char entropy: 7.995333 bits/char
-     Compression rate: 0.000000% (35147 => 35168 bytes)
+        File size: 35147 bytes
+Char distribution: 100.000000%
+  Char redundancy: 0.000000%
+     Char entropy: 7.994904 bits/char
+ Compression rate: 0.000000% (35147 => 35168 bytes)
 
 For comparision, AES result:
 
@@ -108,6 +106,18 @@ For comparision, AES result:
     Monte Carlo value for Pi is 3.172955438 (error 1.00 percent).
     Serial correlation coefficient is -0.004405 (totally uncorrelated = 0.0).
 
+    Entropy = 7.994904 bits per byte.
+    
+    Optimum compression would reduce the size
+    of this 35147 byte file by 0 percent.
+    
+    Chi square distribution for 35147 samples is 248.29, and randomly
+    would exceed this value 60.64 percent of the times.
+    
+    Arithmetic mean value of data bytes is 127.9724 (127.5 = random).
+    Monte Carlo value for Pi is 3.101929315 (error 1.26 percent).
+    Serial correlation coefficient is -0.000624 (totally uncorrelated = 0.0).
+
 For comparision, AES result:
 
     Entropy = 7.994892 bits per byte.
@@ -128,37 +138,5 @@ I fed the contents of my primary disk into TWENTY4 and its output
 into diehard:
     
     dd if=/dev/sda4 of=/dev/stdout | ./stream 1 e | dieharder -a -g 200
-    #=============================================================================#
-    #            dieharder version 3.31.1 Copyright 2003 Robert G. Brown          #
-    #=============================================================================#
-       rng_name    |rands/second|   Seed   |
-    stdin_input_raw|  1.86e+05  |2067533949|
-    #=============================================================================#
-            test_name   |ntup| tsamples |psamples|  p-value |Assessment
-    #=============================================================================#
-       diehard_birthdays|   0|       100|     100|0.11286983|  PASSED  
-          diehard_operm5|   0|   1000000|     100|0.14228207|  PASSED  
-      diehard_rank_32x32|   0|     40000|     100|0.08372938|  PASSED  
-        diehard_rank_6x8|   0|    100000|     100|0.47630577|  PASSED  
-       diehard_bitstream|   0|   2097152|     100|0.68878582|  PASSED  
-            diehard_opso|   0|   2097152|     100|0.36965490|  PASSED  
-            diehard_oqso|   0|   2097152|     100|0.85360068|  PASSED  
-             diehard_dna|   0|   2097152|     100|0.41389081|  PASSED  
-    diehard_count_1s_str|   0|    256000|     100|0.64198483|  PASSED  
-    diehard_count_1s_byt|   0|    256000|     100|0.48126427|  PASSED  
-     diehard_parking_lot|   0|     12000|     100|0.61281762|  PASSED  
-        diehard_2dsphere|   2|      8000|     100|0.98794548|  PASSED  
-        diehard_3dsphere|   3|      4000|     100|0.86553337|  PASSED  
-         diehard_squeeze|   0|    100000|     100|0.47837267|  PASSED  
-            diehard_sums|   0|       100|     100|0.26661852|  PASSED  
-            diehard_runs|   0|    100000|     100|0.78455791|  PASSED  
-            diehard_runs|   0|    100000|     100|0.56428921|  PASSED  
-           diehard_craps|   0|    200000|     100|0.81900152|  PASSED  
-           diehard_craps|   0|    200000|     100|0.54592338|  PASSED  
-    ctrl-c
 
-(FIXME: I aborted here, I'll repeat that one later)
-
-So, all those checks don't look that bad, but of course this doesn't
-say much about TWENTY4's security. However, not THAT bad for the first cipher :)
-
+FIXME: missing.
