@@ -1,11 +1,12 @@
-## TWENTY4 - a fun stream cipher
+## TWENTY4/160 - a fun stream cipher
 
 *THIS IS JUST FOR LEARINING CRYPTO, DO NOT EVER USE THIS FOR ANYTHING*
 
-This is the implementation of the fun stream cipher TWENTY4 by T.v. Dein, 09/2015.
+This is the implementation of the fun stream cipher TWENTY4/160 by T.v. Dein, 09/2015.
 Published under the public domain, Creative Commons Zero License. It works bytewise,
-with keys between 1-256 bits in 17 rounds, uses S-Boxes and key output-feedback mode.
-The cipher also works with CBC or ECB mode (sample CBC implementation included).
+uses a 160 bit key bits in 8 rounds, applies an S-Box. From the key various PRNGs
+are seeded, all those PRNGs are recombined into an output key stream, which is being
+xored with the input (after applying of the sbox).
 
 The name TWENTY4 is a reference to article 20 paragraph 4 of the german constitution
 which reads:
@@ -14,7 +15,7 @@ which reads:
 > abolish this constitutional order, if no other remedy is available.
 
 Also, the cipher uses the contents of the german constitution as the source for its
-S-Boxes.
+S-Box.
 
 ## S-Box generation
 
@@ -54,69 +55,11 @@ TWENTY4 uses two S-Box arrays, one for key expansion and one for encryption.
 
 ## Key expansion
 
-The input key will be expanded into a 32 byte array. Maximum key size is
-32 bytes (256 bit).
-
-    IV = KU[0]
-    for ROUND in 0..31
-      if KU[ROUND]
-        K[ROUND] = IV xor KU[ROUND]
-      else
-        K[ROUND] = IV yor KBOX[ROUND * 8];
-      endif
-      K[ROUND] = KBOX[K[ROUND]]
-      IV = K[ROUND]
-    endfor
-    
-    for KROUND in 0..31
-      for ROUND in 0..31
-        K[ROUND] = IV xor (rotateleft(K[ROUND], 3) xor KBOX[rcon(IV)])
-        IV = K[ROUND]
-      endfor
-    endfor
-
-where:
-
-    KU: input key
-    K[17]: initial round key array
-    ROUND: encryption round 1-32
-    KROUND: key expansion round 1-32
-    KBOX[256]: pre computed S-Box for key expansion
+FIXME.
 
 ## Encryption
 
-    for INBYTE in <INSTREAM>
-      OUTBYTE = INBYTE
-      for ROUND in 0..17
-        OUTBYTE = OUTBYTE xor K[ROUND]
-        OUTBYTE = OUTBYTE xor SBOX[OUTBYTE]
-        OUTBYTE = rotateleft(OUTBYTE, ROUND mod 8)
-        OUTBYTE = rotateright(K[ROUND], 4)
-      endfor
-      rotatekey(K, OUTBYTE)
-      OUTBYTE => <OUTSTREAM>
-    endfor
-    
-    func rotatekey(K, B)
-      PREV = K[31]
-      for N in 0..31
-        NEXT = K[N]
-        K[N] = PREV 
-        PREV = NEXT
-        K[N] = KBOX[K[N] xor B]
-      endfor
-    endfunc    
-
-where:
-
-    K[17]: expanded key
-    ROUND: encryption round 1-17
-    INBYTE: one input byte
-    OUTBYTE: encrypted result for output
-    SBOX[256]: pre computed S-Box for encryption
-    rotateleft(B,N): rotate byte B by N bits to the left 
-    rotateright(B,N): rotate byte B by N bits to the right 
-
+FIXME.
 
 ## Analysis so far
 
@@ -133,11 +76,11 @@ passphrase.
 
 My own measurement, see analyze.c:
 
-             File size: 35147 bytes
-    Char distribution: 100.000000%
-      Char redundancy: 0.000000%
-         Char entropy: 7.995333 bits/char
-     Compression rate: 0.000000% (35147 => 35168 bytes)
+        File size: 35147 bytes
+Char distribution: 100.000000%
+  Char redundancy: 0.000000%
+     Char entropy: 7.994904 bits/char
+ Compression rate: 0.000000% (35147 => 35168 bytes)
 
 For comparision, AES result:
 
@@ -163,6 +106,18 @@ For comparision, AES result:
     Monte Carlo value for Pi is 3.172955438 (error 1.00 percent).
     Serial correlation coefficient is -0.004405 (totally uncorrelated = 0.0).
 
+    Entropy = 7.994904 bits per byte.
+    
+    Optimum compression would reduce the size
+    of this 35147 byte file by 0 percent.
+    
+    Chi square distribution for 35147 samples is 248.29, and randomly
+    would exceed this value 60.64 percent of the times.
+    
+    Arithmetic mean value of data bytes is 127.9724 (127.5 = random).
+    Monte Carlo value for Pi is 3.101929315 (error 1.26 percent).
+    Serial correlation coefficient is -0.000624 (totally uncorrelated = 0.0).
+
 For comparision, AES result:
 
     Entropy = 7.994892 bits per byte.
@@ -179,6 +134,7 @@ For comparision, AES result:
 
 ## Check using dieharder
 
+<<<<<<< HEAD
 Checking an nearly infinite output stream, encrypting NULL with 0x01, checked
 by dieharder:
 
@@ -313,4 +269,11 @@ by dieharder:
 
 So, all those checks don't look that bad, but of course this doesn't
 say much about TWENTY4's security. However, not THAT bad for the first cipher :)
+=======
+I fed the contents of my primary disk into TWENTY4 and its output
+into diehard:
+    
+    dd if=/dev/sda4 of=/dev/stdout | ./stream 1 e | dieharder -a -g 200
+>>>>>>> 3c4788312c1cc97b9bc8f842797037e291ca9f0a
 
+FIXME: missing.
