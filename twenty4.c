@@ -1,44 +1,33 @@
 /*
  ******* THIS IS JUST FOR LEARINING CRYPTO, DO NOT EVER USE THIS FOR ANYTHING *******
 
- This is the implementation of the fun stream cipher TWENTY4 by Thomas von Dein, 09/2015.
+ This is the implementation of the fun stream cipher TWENTY4/160 by Thomas von Dein, 09/2015.
  Published under the public domain, Creative Commons Zero License.
 
  */
 
 #include <stdio.h>
-#include <unistd.h>
 #include <stdlib.h>
-#include <stdint.h>
+#include <unistd.h>
+#include <inttypes.h>
 #include <string.h>
-#include <ctype.h>
-#include <math.h>
 
 typedef uint8_t  byte;
-typedef uint32_t word;
-typedef uint16_t half;
+typedef uint32_t u32;
+typedef uint64_t u64;
 
-const byte kbox[] = {
-  0x53, 0x61, 0x6c, 0x74, 0x65, 0x64, 0x5f, 0xdf, 0x40, 0xc1, 0x9d, 0x46, 0x33, 0x45, 0x92, 0x95, 
-  0xd8, 0x24, 0xf5, 0x1c, 0xe0, 0x29, 0xff, 0xa3, 0x71, 0x6f, 0x35, 0x2e, 0x4b, 0x0d, 0xa7, 0x5d, 
-  0x97, 0xe1, 0x98, 0x58, 0x2b, 0xc4, 0xae, 0xe3, 0xec, 0xb8, 0x38, 0xee, 0x91, 0x2c, 0xb4, 0xa0, 
-  0xc6, 0x34, 0x1f, 0x57, 0x0e, 0xc3, 0x4f, 0xb9, 0x80, 0x21, 0x5b, 0x06, 0xf6, 0x87, 0xfa, 0x5e, 
-  0xe7, 0xda, 0xce, 0xdd, 0x23, 0xe9, 0x03, 0x39, 0xa5, 0x8e, 0xb6, 0xca, 0x3c, 0x7a, 0x44, 0x2d, 
-  0x07, 0xcf, 0x1b, 0xd0, 0x94, 0x85, 0xc5, 0x20, 0xaa, 0x81, 0xc9, 0xb7, 0x2f, 0xfb, 0xb2, 0x50, 
-  0x54, 0xf0, 0x14, 0xd9, 0x00, 0x67, 0x15, 0x9f, 0xa2, 0x02, 0x93, 0xcc, 0xdb, 0x8d, 0x30, 0x78, 
-  0xb1, 0x7b, 0x19, 0xc0, 0x43, 0x6b, 0xbb, 0x2a, 0x3b, 0x4d, 0xe4, 0x08, 0x12, 0x90, 0x32, 0xef, 
-  0xe8, 0x5a, 0xac, 0xf4, 0x8c, 0xe2, 0x4e, 0x6d, 0xaf, 0x66, 0xf8, 0xbc, 0x36, 0x72, 0x01, 0x1e, 
-  0x68, 0x37, 0x59, 0x51, 0xa6, 0x7c, 0xbe, 0x86, 0x8a, 0x8b, 0xfe, 0x0a, 0x05, 0x52, 0x76, 0x27, 
-  0x69, 0x18, 0x22, 0x63, 0x42, 0x4a, 0xad, 0x10, 0xe5, 0xa1, 0xc8, 0xeb, 0xb0, 0x09, 0x6a, 0x4c, 
-  0x16, 0xf7, 0xde, 0xfc, 0x7f, 0x7d, 0xdc, 0x99, 0xbd, 0x7e, 0x26, 0xcd, 0xba, 0xc2, 0xa8, 0x04, 
-  0x0f, 0x3e, 0x82, 0x1d, 0x89, 0xb5, 0x31, 0xb3, 0x47, 0x6e, 0xf3, 0x0b, 0xd3, 0x84, 0x49, 0x0c, 
-  0x3d, 0xd5, 0x9a, 0xd6, 0x9e, 0xd7, 0x8f, 0xa9, 0x79, 0xd4, 0x48, 0x9b, 0x55, 0x56, 0xcb, 0x3a, 
-  0xf9, 0xfd, 0xd2, 0xe6, 0x75, 0x1a, 0x11, 0xf2, 0xa4, 0x5c, 0x96, 0x13, 0xea, 0xd1, 0xbf, 0x60, 
-  0x28, 0xab, 0x9c, 0x77, 0x83, 0x62, 0x17, 0x41, 0x70, 0x25, 0xf1, 0x3f, 0x88, 0x73, 0xc7, 0xed, 
+/* global context, stores the 160 bit key */
+struct _ctx {
+  u32 lcg;
+  u32 d1u;
+  u32 decide;
+  u64 shift;
 };
+typedef struct _ctx ctx;
+ctx *context;
 
-
-const byte sbox[] = {
+/* sbox used for i/o stream diffusion */
+const uint8_t sbox[] = {
   0x61, 0x2d, 0x19, 0xf3, 0xe5, 0xd9, 0xde, 0x5f, 0x41, 0x31, 0xa7, 0xc2, 0x48, 0x02, 0xef, 0x98, 
   0x67, 0xcb, 0x6e, 0x4c, 0xf4, 0x11, 0xfa, 0x87, 0x0f, 0x6f, 0x0a, 0x3b, 0x71, 0x09, 0x1a, 0xb8, 
   0x3c, 0x44, 0xd8, 0xd4, 0xc8, 0x91, 0x6d, 0x8c, 0x2f, 0xce, 0x85, 0x22, 0xd5, 0x08, 0xa6, 0x97, 
@@ -54,257 +43,196 @@ const byte sbox[] = {
   0xc1, 0x1c, 0xaf, 0xac, 0x55, 0xe3, 0xdd, 0x62, 0x2a, 0xcc, 0xd0, 0xe2, 0x0c, 0x66, 0x96, 0x8e, 
   0xab, 0xfc, 0xc4, 0x1d, 0x6a, 0x6c, 0x3f, 0x9b, 0x9a, 0x51, 0xa2, 0x86, 0x52, 0x4a, 0x43, 0x14, 
   0x75, 0xff, 0xf5, 0xcd, 0x1b, 0x0d, 0x35, 0x24, 0x9c, 0xe1, 0x60, 0x73, 0x3e, 0x39, 0x53, 0x16, 
-  0x50, 0x6b, 0xc9, 0x46, 0x57, 0x5c, 0x69, 0x79, 0x82, 0xf1, 0x27, 0x38, 0x34, 0xf6, 0x00, 0xa9, 
-
+  0x50, 0x6b, 0xc9, 0x46, 0x57, 0x5c, 0x69, 0x79, 0x82, 0xf1, 0x27, 0x38, 0x34, 0xf6, 0x00, 0xa9,
 };
 
-byte revsbox[256];
 
-#define K_HASH_ROUNDS 32
-#define S_BOX_ROUNDS  17
-
-
-byte rot8left(byte in, int rot) {
-  return (in >> (8-rot)) | (in << rot);
+/* convert a 64bit number into an 8 element byte array */
+void w2a(u64 in, uint8_t *out) {
+  out[0] = (in >> 56) & 0xFF;
+  out[1] = (in >> 48) & 0xFF;
+  out[2] = (in >> 40) & 0xFF;
+  out[3] = (in >> 32) & 0xFF;
+  out[4] = (in >> 24) & 0xFF;
+  out[5] = (in >> 16) & 0xFF;
+  out[6] = (in >>  8) & 0xFF;
+  out[7] =  in        & 0xFF;
 }
 
-byte rot8right(byte in, int rot) {
-  return (in << (8-rot)) | (in >> rot);
+/* rotate 64bit number by 'rot' left */
+u64 rot64left(u64 in, int rot) {
+  if(rot == 0) rot = 1;
+  return (in >> (64-rot)) | (in << rot);
 }
 
-void printbits(byte v) {
-  int i;
-  for(i = 7; i >= 0; i--) fprintf(stderr, "%c", '0' + ((v >> i) & 1));
+/* rotate 32bit number by 'rot' left */
+u32 rot32left(u32 in, int rot) {
+  return (in >> (32-rot)) | (in << rot);
 }
 
-void dump8(char *n, byte d) {
-  fprintf(stderr, "%s: %02x  ", n, d);
-  printbits(d);
-  fprintf(stderr, "\n");
+/* park-miller 32bit prng */
+u32 _32_lcg_pm(u32 seed) {
+  return ((u64)seed * 48271UL) % 2147483647UL;
 }
 
-void dumpN(char *n, byte *d, size_t s) {
-  int l = strlen(n) + 9;
-  fprintf(stderr, "%s (%04ld): ", n, s);
-  size_t i;
-  int c;
-  for (i=0; i<s; ++i) {
-    fprintf(stderr, "%02x ", d[i]);
-    if(i % 8 == 7 && i > 0) {
-      fprintf(stderr, "\n");
-      for(c=0; c<l; ++c)
-	fprintf(stderr, " ");
-    }
-  }
-  fprintf(stderr, "\n");
+/* galois 32bit linear feedback shift register, taps: 32 31 29 1 */
+u32 _32_gal_d1u(u32 seed) {
+  return (seed >> 1) ^ (unsigned int)(0 - ((seed & 1u) & 0xd0000001u));
 }
 
-/* for decryption */
-void reverse_sbox() {
-  int i;
-  for(i=0; i<256; i++)
-    revsbox[sbox[i]] = i;
+/* de-buijn 32bit non-linear feedback shift register */
+u32 _32_nlfsr_debuijn(u32 seed) {
+  int k = 28, n = 31;
+  return ((((seed>>k)^seed^!(seed>>1))&1)<<(n-1))|(seed>>1);
 }
 
-byte getiv() {
-  FILE *RAND;
-  byte rand;
+/* 64bit non-linear xorshift register */
+u64 _64_xs_st() {
+  context->shift ^= context->shift >> 12; // a
+  context->shift ^= context->shift << 25; // b
+  context->shift ^= context->shift >> 27; // c
+  return context->shift * UINT64_C(2685821657736338717);
+}
+
+/* run registers/prng's */
+u64 fwd_prngs() {
+  context->lcg    = _32_lcg_pm(context->lcg);
+  context->d1u    = _32_gal_d1u(context->d1u);
+  context->decide = _32_nlfsr_debuijn(context->decide);
+  return _64_xs_st();
+}
+
+/* combine the different prng's into a 64bit round key */
+u64 combined64a() {
+  u32 _x;
+  u64 use, xorshift;
+  int xSwap, xRot, xRotBy;
+ 
+  xSwap       = 11; /* Sofie Germain primes as well */
+  xRot        = 29;
+  xRotBy      = 53;
+
+  xorshift = fwd_prngs();
   
-  if((RAND = fopen("/dev/urandom", "rb")) == NULL) {
-    perror("Could not open /dev/urandom");
-    exit(1);
+  if(context->decide % 2 == 0) {
+    /* xor 64bit register with multiplied 32bit registers */
+    use = xorshift ^ ((u64)context->lcg * (u64)context->d1u);
   }
+  else {
+    /* xor both 32bit registers (shifted into a 64bit) with 64bit register */
+    use = xorshift ^ (((u64)context->lcg << 32) + context->d1u);
+  }
+
+  if((context->decide & 0xFF) % xSwap == 0) {
+    /* re-seed 32bit registers by swapping them */
+    _x           = context->lcg;
+    context->lcg = context->d1u;
+    context->d1u = _x;
+  }
+
+  if((context->decide & 0xFF) % xRot == 0) {
+    // rotate 64t left
+    context->shift = rot64left(context->shift, (context->decide & 0xFF) % xRotBy);
+  }
+
+  return use;
+}
+
+void dumpk(ctx *k) {
+  fprintf(stderr, "    lcg: %04X\n", k->lcg);
+  fprintf(stderr, "    d1u: %04X\n", k->d1u);
+  fprintf(stderr, " decide: %04X\n", k->decide);
+  fprintf(stderr, "  shift: %" PRIX64 "\n", k->shift);
+}
+
+/* convert 20 byte hex string into 160 bit key (= context) */
+ctx *parseargs(char *arg) {
+  char tmp[9];
+  size_t len;
+  ctx *k;
   
-  if(fread(&rand, 1, 1, RAND) != 1) {
-    perror("Could not read from /dev/urandom");
-    exit(1);
+  len = strlen(arg);
+	       
+  if(len < 160/8) {
+    fprintf(stderr, "key too small (got %ld, expected %d)\n", len, 160/8);
+    return NULL;
   }
+  else {
+    k = malloc(sizeof(ctx));
+    memset(tmp, 0, 9);
     
-  fclose(RAND);
-
-  return rand;
+    memcpy(tmp, arg, 4);
+    k->lcg = strtol(tmp, NULL, 16);
+    
+    memcpy(tmp, &arg[4], 4);
+    k->d1u = strtol(tmp, NULL, 16);
+    
+    memcpy(tmp, &arg[8], 4);
+    k->decide = strtol(tmp, NULL, 16);
+    
+    memcpy(tmp, &arg[12], 8);
+    k->shift = strtoll(tmp, NULL, 16);
+    
+    return k;
+  }
 }
 
-byte rcon(byte in) {
-  byte c=1;
-  if(in == 0)  
-    return 0; 
-
-  while(in != 1) {
-    byte b;
-    b = c & 0x80;
-    c <<= 1;
-    if(b == 0x80) {
-      c ^= 0x1b;
-    }
-    in--;
-  }
-  return c;
-}
-
-/* we use rounds * 8bit sub keys expanded from
-   given password */
-void keyhash(char *pw, byte *hash) {
-  byte iv;
-  int i, round;
-  unsigned int HEX;
-  size_t pwlen;
-
-  if(strncmp(pw, "0x", 2) == 0) {
-    /* hex pw */
-    sscanf(pw, "0x%02x", &HEX);
-    pw[0] = (byte)HEX;
-    pwlen = 1;
-  }
-  else {
-    pwlen = strlen(pw);
-  }
+/* diffuse context with prime numbers */
+void diffuse_context() {
+  /* 32bits are random Sofie Germain primes,
+     64bit is a Carmichael number(fermat pseudoprime), see
+     https://oeis.org/A255578
   
-  iv = kbox[(byte)pw[0]];
-
-  /* stretch pw */
-  for(i=0; i<K_HASH_ROUNDS; i++) {
-    if((size_t)i < pwlen)
-      hash[i] = iv ^ pw[i];
-    else
-      hash[i] = iv ^ kbox[i*8];
-
-    hash[i] = kbox[hash[i]];
-    iv = hash[i];
-  }
+     diffuse input key with those primes
+  */
+  u32 tmplcg;
+  int i, xRotBy = 29;
   
-  /* diffuse and confuse hash */
-  for(round=0; round<K_HASH_ROUNDS; round++) {
-    for(i=0; i<K_HASH_ROUNDS; i++) {
-      hash[i] = iv ^ ((rot8left(hash[i], 3) * kbox[rcon(iv)])) % 255;
-      iv = hash[i];
-    }
-  }
+  context->lcg    ^= 0x85f62713;
+  context->d1u    ^= 0xc178f733;
+  context->decide ^= 0x49a79a73;
+  context->shift  ^= 17905475062325518273U;
 
-}
-
-void reverse(byte a[], int sz) {
-  int i, j;
-  for (i = 0, j = sz; i < j; i++, j--) {
-    byte tmp = a[i];
-    a[i] = a[j];
-    a[j] = tmp;
+  for(i=0; i<7; i++) {
+    tmplcg           = context->lcg;
+    context->lcg    ^= rot32left(context->d1u,    (context->decide & 0xFF) % xRotBy);
+    context->d1u    ^= rot32left(context->decide, (context->d1u    & 0xFF) % xRotBy);
+    context->decide ^= rot32left(tmplcg,          (context->lcg    & 0xFF) % xRotBy);
+    context->shift  ^= (((u64)context->lcg << 32) + context->d1u);
   }
 }
 
-void rotate(byte array[], int size, int amt) {
-  if (amt < 0)
-    amt = size + amt;
-  reverse(array, size-amt-1);
-  reverse(array+size-amt, amt-1);
-  reverse(array, size-1);
-}
-
-void rotatekey(byte *key, byte feedback) {
+/* actual stream (1byte) encrypt/decrypt */
+void io_loop() {
+  byte out, K[8];
   int i;
-  byte f = key[0];
-
-  for (i = S_BOX_ROUNDS-1; i>1; i--)
-    key[i-1] = kbox[key[i] ^ feedback];
-
-  key[16] =  kbox[f ^ feedback];
-}
-
-/* actual stream cipher:
-   - xor with round key
-   - apply sbox
-   - rotate left by (round mod 8) bits
-   - xor with (round key rotated left by 4 bits [halfes reversed])
-*/
-byte bytebox(byte in, byte *key, int encrypt) {
-  int i;
-  byte out = in;
-
-  if(encrypt) {
-    for(i=0; i<S_BOX_ROUNDS; i++) {
-      out ^= key[i];
-      out  = sbox[out];
-      out  = rot8left(out, i%8);
-      out ^= rot8right(key[i], 4);
-    }
-    rotatekey(key, out);
-  }
-  else {
-    for(i=S_BOX_ROUNDS-1; i>= 0; i--) {
-      out ^= rot8left(key[i], 4);
-      out  = rot8right(out, i%8);
-      out  = revsbox[out];
-      out ^= key[i];
-    }
-    rotatekey(key, in);
-  }
   
+  w2a(combined64a(), K);
   
-  return out;
-}
-
-/* work on stdin and stdout */
-int handleio(byte *key, int encrypt) {
-  byte in, out;
-
-  while (fread(&in, 1, 1, stdin) == 1) {
-    out = bytebox(in, key, encrypt);
+  while(fread(&out, 1, 1, stdin) == 1) {
+    for(i=0; i<8; i++) out ^= sbox[K[i]]; /* apply our sbox */
     fwrite(&out, 1, 1, stdout);
+    w2a(combined64a(), K);
   }
 
-  return 0;
-}
-
-/* work on stdin and stdout, in CBC 8bit mode */
-int cbc_handleio(byte *key, int encrypt) {
-  byte in, out, iv;
-
-  if(encrypt) {
-    iv = getiv();
-    fwrite(&iv, 1, 1, stdout);
-  }
-  else {
-    fread(&iv, 1, 1, stdin);
-  }
-  
-  while (fread(&in, 1, 1, stdin) == 1) {
-    if(encrypt) {
-      out = bytebox(iv ^ in, key, encrypt);
-      iv = out;
-    }
-    else {
-      out = iv ^ bytebox(in, key, encrypt);
-      iv = in;
-    }
-
-    fwrite(&out, 1, 1, stdout);
-  }
-
-  return 0;
+  fflush(stdout);
 }
 
 
 int main(int argc, char **argv)  {
-  byte key[K_HASH_ROUNDS];
-  int encrypt;
-  
-  if(argc != 3) {
-    fprintf(stderr, "Usage: stream <passwd> <e|n>\ne=encrypt, n=decrypt\n");
-    return 1;
+  if(argc == 2) {
+    context = parseargs(argv[1]);
+    if(context == NULL) {
+      return 1;
+    }
+    else {
+      diffuse_context();
+      io_loop();
+      return 0;
+    }
   }
   else {
-    encrypt = 0;
-
-    if(strcmp(argv[2], "e") == 0)
-      encrypt = 1;
-
-    reverse_sbox();
-
-    keyhash(argv[1], key);
-
-    return handleio(key, encrypt);
+    fprintf(stderr, "usage: twenty4 <20 byte hex key>\n");
+    return 1;
   }
 }
-
-
-
