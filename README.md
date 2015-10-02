@@ -4,9 +4,11 @@
 
 This is the implementation of the fun stream cipher TWENTY4/160 by T.v. Dein, 09/2015.
 Published under the public domain, Creative Commons Zero License. It works bytewise,
-uses a 160 bit key bits in 8 rounds, applies an S-Box. From the key various PRNGs
-are seeded, all those PRNGs are recombined into an output key stream, which is being
-xored with the input (after applying of the sbox).
+uses a 160 bit key in 8 rounds including an S-Box. A random nonce is added for more
+security as IV, each output byte is used as the next IV (like CBC mode). From the key
+various PRNGs are seeded, all those PRNGs are recombined into an output key stream,
+which is being xored with the IV and then applied to the sbox; the result is then xored
+with the input..
 
 The name TWENTY4 is a reference to article 20 paragraph 4 of the german constitution
 which reads:
@@ -44,14 +46,12 @@ checksum: 29bfd8bd6dbca696d4d8b7ca997497e091875d6bf939e9702b1edf669d0742b0.
 However, it just prints out bytes which it reads from STDIN, collecting them into an 256
 byte array, ignoring possible duplicates, and prints it out as hex.
 
-Both S-Boxes are bijective and have the following properties (calculated using analyze.c):
+The S-Box is bijective and has the following properties (calculated using analyze.c):
 
     Char distribution: 100.000000%
       Char redundancy: 0.000000%
          Char entropy: 8.000000 bits/char
      Compression rate: 0.000000%
-
-TWENTY4 uses two S-Box arrays, one for key expansion and one for encryption.
 
 ## Key expansion
 
@@ -76,11 +76,11 @@ passphrase.
 
 My own measurement, see analyze.c:
 
-        File size: 35147 bytes
-Char distribution: 100.000000%
-  Char redundancy: 0.000000%
-     Char entropy: 7.994904 bits/char
- Compression rate: 0.000000% (35147 => 35168 bytes)
+            File size: 10240000 bytes
+    Char distribution: 99.609375%
+      Char redundancy: 0.390625%
+         Char entropy: 7.999984 bits/char
+     Compression rate: 0.000000% (10240000 => 10243131 bytes)
 
 For comparision, AES result:
 
@@ -94,29 +94,19 @@ For comparision, AES result:
 
 (ent from http://www.fourmilab.ch/random/):
 
-    Entropy = 7.995333 bits per byte.
+    
+    Entropy = 7.999984 bits per byte.
     
     Optimum compression would reduce the size
-    of this 35147 byte file by 0 percent.
+    of this 10240000 byte file by 0 percent.
     
-    Chi square distribution for 35147 samples is 229.98, and randomly
-    would exceed this value 86.79 percent of the times.
+    Chi square distribution for 10240000 samples is 221.67, and randomly
+    would exceed this value 93.52 percent of the times.
     
-    Arithmetic mean value of data bytes is 127.6631 (127.5 = random).
-    Monte Carlo value for Pi is 3.172955438 (error 1.00 percent).
-    Serial correlation coefficient is -0.004405 (totally uncorrelated = 0.0).
+    Arithmetic mean value of data bytes is 127.4901 (127.5 = random).
+    Monte Carlo value for Pi is 3.142712165 (error 0.04 percent).
+    Serial correlation coefficient is -0.000012 (totally uncorrelated = 0.0).
 
-    Entropy = 7.994904 bits per byte.
-    
-    Optimum compression would reduce the size
-    of this 35147 byte file by 0 percent.
-    
-    Chi square distribution for 35147 samples is 248.29, and randomly
-    would exceed this value 60.64 percent of the times.
-    
-    Arithmetic mean value of data bytes is 127.9724 (127.5 = random).
-    Monte Carlo value for Pi is 3.101929315 (error 1.26 percent).
-    Serial correlation coefficient is -0.000624 (totally uncorrelated = 0.0).
 
 For comparision, AES result:
 
@@ -139,6 +129,28 @@ I ran the cipher against the dieharder test suite this way:
     dd if=/dev/zero of=/dev/stdout | ./twenty4 00000000000000000001 | dieharder -g 200 -a
 
 Find the results in analyze/dieharder160.log 
+
+## Output test
+
+    - same clear text slightly different key
+    IN: 111111111111, KEY: 00000000000000000001, NONCE: 1, OUT: 8201 cedd ec74 f55b f6a8 a7eb          
+    IN: 111111111111, KEY: 00000000000000000002, NONCE: 2, OUT: 964d 0939 cf94 a158 a259 ff4e          
+    IN: 111111111111, KEY: 00000000000000000003, NONCE: 3, OUT: db9a 4e08 9ac8 3297 6457 b8aa          
+    IN: 111111111111, KEY: 00000000000000000004, NONCE: 4, OUT: 4946 2ce3 fd4a f4e8 95aa 985a          
+    IN: 111111111111, KEY: 00000000000000000005, NONCE: 5, OUT: 5f5f 4eaf c0d2 4363 9b18 2eb4          
+    IN: 111111111111, KEY: 00000000000000000006, NONCE: 6, OUT: e8df deb7 2afe 3783 98d6 8c3f          
+    IN: 111111111111, KEY: 00000000000000000007, NONCE: 7, OUT: 6e3a 27d5 06ed eeca ad3b e7c0          
+    IN: 111111111111, KEY: 00000000000000000008, NONCE: 8, OUT: 1c31 4f9b 58d4 1cbd c0cd 0885
+    
+    - same key, slightly different clear text
+    IN: 111111111111, KEY: 00000000000000000001, NONCE: 1, OUT: 8201 cedd ec74 f55b f6a8 a7eb          
+    IN: 111111111112, KEY: 00000000000000000001, NONCE: 2, OUT: 031c 6a54 b299 dcc1 5726 57e4          
+    IN: 111111111113, KEY: 00000000000000000001, NONCE: 3, OUT: cd12 a615 1ce0 6b95 3ca8 d4b7          
+    IN: 111111111114, KEY: 00000000000000000001, NONCE: 4, OUT: 4a6e a49f e68b 4fe7 61ac 4642          
+    IN: 111111111115, KEY: 00000000000000000001, NONCE: 5, OUT: 999f 44a0 f563 1c06 64d1 e710          
+    IN: 111111111116, KEY: 00000000000000000001, NONCE: 6, OUT: 92d0 e5e0 67c4 0076 c3d7 4130          
+    IN: 111111111117, KEY: 00000000000000000001, NONCE: 7, OUT: f6c2 59fd bdd0 2298 9975 3757          
+    IN: 111111111118, KEY: 00000000000000000001, NONCE: 8, OUT: 830b 63d4 15f9 fb41 3cd3 0c62
 
 
 So, all those checks don't look that bad, but of course this doesn't
