@@ -46,7 +46,23 @@ const uint8_t sbox[16][16] = {
   { 0x50, 0x6b, 0xc9, 0x46, 0x57, 0x5c, 0x69, 0x79, 0x82, 0xf1, 0x27, 0x38, 0x34, 0xf6, 0x00, 0xa9 }
 };
 
+/*
+  constants used to diffuse key (context)
 
+  - the 32bits are random Sofie Germain primes
+  - the 64bit is Carmichael number(fermat pseudoprime),
+    see https://oeis.org/A255578
+  - the small x*'s are Sofie Germain primes as well
+  
+ */
+#define SGP_LCG   0x85f62713
+#define SGP_D1U   0xc178f733
+#define SGP_DEC   0x49a79a73
+#define MP_SHI    0xf87d06b3b0871fc1
+#define xRotBy    29
+#define xSwapBy   11
+#define xLeftBy   53
+#define xRotNonce 7
 
 /* convert a 64bit number into an 8 element byte array */
 void w2a(u64 in, uint8_t *out) {
@@ -128,12 +144,7 @@ u64 fwd_prngs() {
 u64 combined64a() {
   u32 _x;
   u64 use, xorshift;
-  int xSwap, xRot, xRotBy;
  
-  xSwap       = 11; /* Sofie Germain primes as well */
-  xRot        = 29;
-  xRotBy      = 53;
-
   xorshift = fwd_prngs();
   
   if(context->decide % 2 == 0) {
@@ -145,16 +156,16 @@ u64 combined64a() {
     use = xorshift ^ (((u64)context->lcg << 32) + context->d1u);
   }
 
-  if((context->decide & 0xFF) % xSwap == 0) {
+  if((context->decide & 0xFF) % xSwapBy == 0) {
     /* re-seed 32bit registers by swapping them */
     _x           = context->lcg;
     context->lcg = context->d1u;
     context->d1u = _x;
   }
 
-  if((context->decide & 0xFF) % xRot == 0) {
+  if((context->decide & 0xFF) % xRotBy == 0) {
     // rotate 64t left
-    context->shift = rot64left(context->shift, (context->decide & 0xFF) % xRotBy);
+    context->shift = rot64left(context->shift, (context->decide & 0xFF) % xLeftBy);
   }
 
   return use;
@@ -164,7 +175,7 @@ void dumpk(ctx *k) {
   fprintf(stderr, "    lcg: %04X\n", k->lcg);
   fprintf(stderr, "    d1u: %04X\n", k->d1u);
   fprintf(stderr, " decide: %04X\n", k->decide);
-  fprintf(stderr, "  shift: %" PRIX64 "\n", k->shift);
+  fprintf(stderr, "  shift: %" PRIX64 "\n--\n", k->shift);
 }
 
 /* convert 20 byte hex string into 160 bit key (= context) */
@@ -201,19 +212,13 @@ ctx *parseargs(char *arg) {
 
 /* diffuse context with prime numbers */
 void diffuse_context() {
-  /* 32bits are random Sofie Germain primes,
-     64bit is a Carmichael number(fermat pseudoprime), see
-     https://oeis.org/A255578
-  
-     diffuse input key with those primes
-  */
   u32 tmplcg;
-  int i, xRotBy = 29;
-  
-  context->lcg    ^= 0x85f62713;
-  context->d1u    ^= 0xc178f733;
-  context->decide ^= 0x49a79a73;
-  context->shift  ^= 17905475062325518273U;
+  int i;
+
+  context->lcg    ^= SGP_LCG;
+  context->d1u    ^= SGP_D1U;
+  context->decide ^= SGP_DEC;
+  context->shift  ^= MP_SHI;
 
   for(i=0; i<7; i++) {
     tmplcg           = context->lcg;
@@ -239,8 +244,8 @@ void io_loop(byte nonce) {
       out   ^= apply_sbox(nonce);
 
       /* rotate nonce left by 7 bits sometimes */
-      if(K[i] && K[i] % 53 == 0) {
-	nonce = rot8left(nonce, 7);
+      if(K[i] && K[i] % xLeftBy == 0) {
+	nonce = rot8left(nonce, xRotNonce);
       }
     }
     
