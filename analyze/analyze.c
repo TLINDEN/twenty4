@@ -192,14 +192,21 @@ void analyze(char *infile) {
   red   = 100 - dist;
   zrate = zsize > in->len ? 0 : 100 - (zsize / (in->len / 100));
   
+  /*
+            File size: 10240000 bytes
+Char distribution: 100.000000%
+  Char redundancy: 0.000000%
+     Char entropy: 7.999982 bits/char
+ Compression rate: 0.000000% (10240000 => 10243131 bytes)
+  */
   fprintf(stdout,
-	  "        File size: %ld bytes\n"
-	  "Char distribution: %lf%%\n"
-	  "  Char redundancy: %lf%%\n"
-	  "     Char entropy: %lf bits/char\n"
-	  " Compression rate: %lf%% (%ld => %ld bytes)\n",
-	  in->len, dist, red, entropy, zrate, in->len, zsize
-	  );
+          "                          File size: %ld bytes\n"
+          "     Char distribution (best: 100%%): %lf%%\n"
+          "       Char redundancy (best: 0.0%%): %lf%%\n"
+          "    Char entropy (best: 8.0 bits/c): %lf bits/char\n"
+          "      Compression rate (best: 0.0%%): %lf%% (%ld => %ld bytes)\n",
+          in->len, dist, red, entropy, zrate, in->len, zsize
+          );
 }
 
 void print_chars_hex(Bytes *in) {
