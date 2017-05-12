@@ -194,10 +194,10 @@ void analyze(char *infile) {
   
   fprintf(stdout,
           "                          File size: %ld bytes\n"
-          "     Char distribution (best: 100%%): %lf%%\n"
-          "       Char redundancy (best: 0.0%%): %lf%%\n"
-          "    Char entropy (best: 8.0 bits/c): %lf bits/char\n"
-          "      Compression rate (best: 0.0%%): %lf%% (%ld => %ld bytes)\n",
+          "     Char distribution (random: 100%%): %lf%%\n"
+          "       Char redundancy (random: 0.0%%): %lf%%\n"
+          "    Char entropy (random: 8.0 bits/c): %lf bits/char\n"
+          "      Compression rate (random: 0.0%%): %lf%% (%ld => %ld bytes)\n",
           in->len, dist, red, entropy, zrate, in->len, zsize
           );
 }
