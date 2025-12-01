@@ -1,3 +1,7 @@
+> [!CAUTION]
+> This software is now being maintained on [Codeberg](https://codeberg.org/scip/twenty4/).
+
+
 ## TWENTY4/160 - a fun stream cipher
 
 *THIS IS JUST FOR LEARINING CRYPTO, DO NOT EVER USE THIS FOR ANYTHING*
